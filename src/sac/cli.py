@@ -209,6 +209,7 @@ def _resolve_config(args: argparse.Namespace) -> dict[str, Any]:
         "api_key": _cli_or(args, "api_key", "OPENAI_API_KEY", DEFAULT_API_KEY),
         "model": _cli_or(args, "model", "SAC_MODEL", DEFAULT_MODEL),
         "brave_key": os.environ.get("BRAVE_SEARCH_API_KEY"),
+        "tavily_key": os.environ.get("TAVILY_API_KEY"),
         "http_proxy": args.http_proxy,
         "https_proxy": args.https_proxy,
         "sandbox_backend": sandbox_backend,
@@ -228,6 +229,7 @@ def _execute(task: str, args: argparse.Namespace) -> str:
         brave_key=cfg["brave_key"],
         http_proxy=cfg["http_proxy"],
         https_proxy=cfg["https_proxy"],
+        tavily_key=cfg["tavily_key"],
     )
     agent = SaCAgent(
         task=task,

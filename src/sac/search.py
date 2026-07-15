@@ -22,10 +22,12 @@ class SearchSDK:
         brave_key: str | None = None,
         http_proxy: str | None = None,
         https_proxy: str | None = None,
+        tavily_key: str | None = None,
     ) -> None:
         self._brave_key = brave_key
         self._http_proxy = http_proxy
         self._https_proxy = https_proxy
+        self._tavily_key = tavily_key
         self._simulate = False
         self.total_queries = 0
         self.total_results = 0
@@ -75,8 +77,16 @@ class SearchSDK:
                 return results
             except Exception as e:
                 print(
-                    f"[dim red]  Brave error: {e} — fallback to Exa[/]", file=sys.stderr
+                    f"[dim red]  Brave error: {e} — fallback to Tavily/Exa[/]",
+                    file=sys.stderr,
                 )
+        if self._tavily_key:
+            try:
+                results = self._tavily_search(query, limit)
+                self._cache[cache_key] = results
+                return results
+            except Exception as e:
+                _log(f"Tavily error: {e}")
         try:
             results = self._exa_mcp_search(query, limit)
             self._cache[cache_key] = results
@@ -110,6 +120,22 @@ class SearchSDK:
             return resp
 
         return with_retry(_do_request)
+
+    def _tavily_search(self, query: str, limit: int) -> list[SearchResult]:
+        from tavily import TavilyClient  # type: ignore[import-untyped]
+
+        assert self._tavily_key is not None
+        client = TavilyClient(api_key=self._tavily_key)
+        response = client.search(query=query, max_results=min(limit, 20))
+        return [
+            SearchResult(
+                url=r.get("url", ""),
+                title=r.get("title", ""),
+                snippet=r.get("content", ""),
+                domain=_extract_domain(r.get("url", "")),
+            )
+            for r in response.get("results", [])[:limit]
+        ]
 
     def _brave_search(self, query: str, limit: int) -> list[SearchResult]:
         assert self._brave_key is not None
